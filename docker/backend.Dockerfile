@@ -17,4 +17,4 @@ RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY backend/app /app
 
 # 開発環境用の起動コマンド
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
