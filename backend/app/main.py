@@ -1,53 +1,42 @@
-# backend/app/main.py
-import os
-from fastapi import FastAPI
-from dotenv import load_dotenv
-import sqlalchemy
-from app.api import chat, settings
+# app/main.py
+from fastapi import FastAPI, HTTPException
 
-# .env ファイルから環境変数を読み込む
-load_dotenv()
-
-# FastAPI アプリケーションのインスタンスを作成
-app = FastAPI(
-    title="AI Butler Alfred API",
-    description="User-configured AI butler chatbot API",
-    version="0.1.0",
+# 設定とイベントハンドラーのインポート
+from app.core.config import APP_SETTINGS
+from app.core.events import startup_event, shutdown_event
+from app.exceptions import (
+    AppException,
+    app_exception_handler,
+    http_exception_handler,
+    unhandled_exception_handler,
 )
 
-# ルーターを追加
-app.include_router(chat.router)
-app.include_router(settings.router)
+# ルーターのインポート
+from app.routers.base import router as base_router
+from app.routers.files import router as file_router
 
-# データベース接続URLを取得
-DATABASE_URL = os.getenv("DATABASE_URL")
+# from app.routers.chat import router as chat_router
 
-
-# データベース接続の確認
-@app.on_event("startup")
-async def startup_db_client():
-    print(f"Attempting to connect to database: {DATABASE_URL}")
-    try:
-        engine = sqlalchemy.create_engine(DATABASE_URL)
-        # connectionを試みる
-        with engine.connect():
-            print("Database connection successful!")
-    except Exception as e:
-        print(f"Database connection failed: {e}")
+# FastAPI アプリケーションのインスタンスを作成
+application = FastAPI(
+    title=APP_SETTINGS["title"],
+    description=APP_SETTINGS["description"],
+    version=APP_SETTINGS["version"],
+)
 
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    # アプリケーション終了時の処理
-    pass
+# 例外ハンドラーの登録
+application.add_exception_handler(AppException, app_exception_handler)
+application.add_exception_handler(HTTPException, http_exception_handler)
+application.add_exception_handler(Exception, unhandled_exception_handler)
 
 
-# 基本的な疎通確認用エンドポイント
-@app.get("/")
-async def read_root():
-    return {"message": "AI Butler Alfred API is running!"}
+# アプリケーション起動・終了イベント設定
+application.add_event_handler("startup", startup_event)
+application.add_event_handler("shutdown", shutdown_event)
 
 
-@app.get("/health")
-async def health_check():
-    return {"status": "ok", "database_connection": "check_startup_logs"}
+# ルーターをアプリケーションに含める
+application.include_router(base_router)  # 基本ルートとヘルスチェック用ルーター
+application.include_router(file_router)
+# application.include_router(chat_router)

@@ -6,9 +6,16 @@ from sqlalchemy.orm import sessionmaker
 from dotenv import load_dotenv
 
 # .env ファイルから環境変数を読み込む
-load_dotenv()
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), "../../../.env"))
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+# 環境変数が見つからない場合はデフォルト値を使用
+# ホスト名を「postgres」から「localhost」に変更
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", "postgresql://postgres:password@localhost:5432/tutordb"
+)
+
+
+print(f"Database URL: {DATABASE_URL}")  # 接続文字列を表示（デバッグ用）
 
 # SQLAlchemy エンジンを作成
 # connect_args={"check_same_thread": False} は SQLite の場合に必要な設定ですが、
@@ -32,11 +39,40 @@ def get_db():
         db.close()
 
 
-# テーブルが存在しない場合に作成する関数 (開発用)
-def create_tables():
-    print("Creating database tables...")
-    Base.metadata.create_all(bind=engine)
-    print("Database tables created (if not exist).")
+# テーブルをドロップして再作成する関数 (開発用)
+def drop_and_create_tables():
+    try:
+        print("Dropping database tables...")
+        Base.metadata.drop_all(bind=engine)
+        print("Database tables dropped.")
+
+        print("Creating database tables...")
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created.")
+    except Exception as e:
+        print(f"Error in drop_and_create_tables: {e}")
+        print("Continuing without dropping/creating tables...")
+
+
+# アプリケーション起動時に接続確認とテーブル作成を行う関数
+def init_db():
+    print("Initializing database...")
+    # 接続確認
+    try:
+        with engine.connect():
+            print("Database connection successful!")
+    except Exception as e:
+        print(f"Database connection failed: {e}")
+        return False
+
+    # テーブル作成
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("Database tables created successfully.")
+        return True
+    except Exception as e:
+        print(f"Error creating tables: {e}")
+        return False
 
 
 # アプリケーション起動時にテーブルを作成する場合は main.py から呼び出す
