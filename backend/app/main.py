@@ -14,8 +14,7 @@ from app.exceptions import (
 # ルーターのインポート
 from app.routers.base import router as base_router
 from app.routers.files import router as file_router
-
-# from app.routers.chat import router as chat_router
+from app.routers.chat import router as chat_router
 
 # FastAPI アプリケーションのインスタンスを作成
 application = FastAPI(
@@ -39,4 +38,4 @@ application.add_event_handler("shutdown", shutdown_event)
 # ルーターをアプリケーションに含める
 application.include_router(base_router)  # 基本ルートとヘルスチェック用ルーター
 application.include_router(file_router)
-# application.include_router(chat_router)
+application.include_router(chat_router)
