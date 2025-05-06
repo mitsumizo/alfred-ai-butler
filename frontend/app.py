@@ -8,7 +8,7 @@ from components.settings import render_settings_ui
 load_dotenv()
 
 # APIのベースURL
-API_URL = os.getenv("API_URL", "http://localhost:8000")
+API_URL = os.getenv("API_URL", "http://127.0.0.1:8000")
 
 # アプリケーションのタイトルとデザイン設定
 st.set_page_config(

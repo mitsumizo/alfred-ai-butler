@@ -1,5 +1,5 @@
 import streamlit as st
-from utils.api import send_chat_message
+from utils.api import send_chat_message, search_documents
 
 
 def initialize_chat_state():
@@ -59,14 +59,65 @@ def handle_user_input(prompt: str):
 def render_chat_ui():
     """チャットUIを描画します。"""
     # セッション状態の初期化
-    initialize_chat_state()
+    if "messages" not in st.session_state:
+        st.session_state.messages = [
+            {
+                "role": "assistant",
+                "content": "いらっしゃいませ。執事アルフレッドがご質問にお答えします。",
+            }
+        ]
 
-    # チャット履歴の表示
-    display_chat_history()
+    # チャット履歴を表示
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
 
-    # ユーザー入力欄
-    prompt = st.chat_input("執事アルフレッドに話しかける")
+    # チャット入力
+    if prompt := st.chat_input("メッセージを入力してください..."):
+        # ユーザーメッセージをチャット履歴に追加
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # 入力があれば処理
-    if prompt:
-        handle_user_input(prompt)
+        # ユーザーのメッセージを表示
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # RAG検索を実行して関連情報を取得
+        relevant_context = ""
+        try:
+            with st.spinner("関連情報を検索中..."):
+                search_results = search_documents(prompt)
+
+                if search_results.get("results") and len(search_results["results"]) > 0:
+                    for result in search_results["results"]:
+                        relevant_context += result.get("content", "") + "\n\n"
+        except Exception as e:
+            st.error(f"情報検索中にエラーが発生しました: {str(e)}", icon="🔍")
+
+        # APIレスポンスを待機中表示
+        with st.chat_message("assistant"):
+            message_placeholder = st.empty()
+            message_placeholder.markdown("🤔 考え中...")
+
+            try:
+                # APIにメッセージを送信（関連情報も送信）
+                response = send_chat_message(
+                    prompt, context=relevant_context if relevant_context else None
+                )
+                assistant_response = response.get(
+                    "response", "申し訳ありません。応答を生成できませんでした。"
+                )
+
+                # アシスタントの応答をチャット履歴に追加
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": assistant_response}
+                )
+
+                # 応答を表示
+                message_placeholder.markdown(assistant_response)
+
+            except Exception as e:
+                error_message = f"エラーが発生しました: {str(e)}"
+                message_placeholder.markdown(f"🚫 {error_message}")
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": error_message}
+                )
