@@ -16,8 +16,6 @@ class StorageService:
             f"DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://{host}:10000/devstoreaccount1;",
         )
 
-        print(f"Azurite接続先: http://{host}:10000")
-
         try:
             # BlobServiceClientの作成
             self.blob_service_client = BlobServiceClient.from_connection_string(
