@@ -53,8 +53,26 @@ services:
       - ./.env
     ports:
       - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
     depends_on:
       - postgres
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite
+    container_name: my-portfolio-azurite
+    ports:
+      - "10000:10000" # Blob service
+      - "10001:10001" # Queue service
+      - "10002:10002" # Table service
+    volumes:
+      - azurite-data:/data
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0
+
+networks:
+  default:
+    name: my-portfolio-network
 
 volumes:
+  azurite-data:
   postgres-data:
+  pgadmin-data:
